@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Camera } from "../../engine/camera/Camera";
 import { FRACTAL_DEFAULT_CAMERA } from "../../engine/fractals/defaults";
 import { evaluateAnimatedFrame } from "../../engine/renderer/FrameRenderer";
+import { resolveSequenceFrame } from "../../engine/sequence/Sequence";
+import { DrawCanvas } from "./DrawCanvas";
+import { DRAW_COLOR_PRESETS } from "../../engine/draw/DrawLayer";
 import { waveformWindowAt, spectrumWindowAt } from "../../engine/audio/AudioAnalyzer";
 import { WebGPURenderer } from "../../engine/renderer/WebGPURenderer";
 import { buildProjectFromStore } from "../../project/Project";
@@ -90,6 +93,7 @@ export function FractalViewport() {
         // resumes the instant renderProgress clears.
         const isExporting = useEditorStore.getState().renderProgress !== null;
         if (ready && !isExporting && canvas.width > 0 && canvas.height > 0) {
+          const state = useEditorStore.getState();
           const {
             selectedFractalId: fractalId,
             layerBFractalId,
@@ -99,31 +103,49 @@ export function FractalViewport() {
             currentTime,
             audioAnalysis,
             audioMappings,
-          } = useEditorStore.getState();
-          const cameraState = cameraRef.current.getState();
-          const buildLayer = (id: string) => {
-            const uniforms = evaluateAnimatedFrame(
-              id,
-              cameraState,
-              paramsByFractal[id],
-              keyframesByParam,
-              currentTime,
-              canvas.width,
-              canvas.height,
-              color,
-              audioAnalysis,
-              audioMappings,
-            );
-            return {
-              fractalId: id,
-              uniforms,
-              waveform: id === "feast" && audioAnalysis ? waveformWindowAt(audioAnalysis, currentTime) : undefined,
-              spectrum: id === "bars" && audioAnalysis ? spectrumWindowAt(audioAnalysis, currentTime) : undefined,
+            sequenceActive,
+            sequence,
+            sequenceTransitionSeconds,
+          } = state;
+
+          // Sequence mode (HeavyM-inspired scene chaining, engine/sequence/Sequence.ts)
+          // fully owns the frame — each scene is its own preset with its own
+          // camera/color/keyframes, resolved (and possibly crossfaded into the
+          // next one) from currentTime alone. Falls through to the normal
+          // single-fractal path if the sequence is empty rather than showing
+          // a blank frame.
+          const resolvedSequence = sequenceActive
+            ? resolveSequenceFrame(sequence, currentTime, sequenceTransitionSeconds, canvas.width, canvas.height, audioAnalysis)
+            : null;
+
+          if (resolvedSequence) {
+            renderer.renderComposite(resolvedSequence.layerA, resolvedSequence.layerB, resolvedSequence.crossfade);
+          } else {
+            const cameraState = cameraRef.current.getState();
+            const buildLayer = (id: string) => {
+              const uniforms = evaluateAnimatedFrame(
+                id,
+                cameraState,
+                paramsByFractal[id],
+                keyframesByParam,
+                currentTime,
+                canvas.width,
+                canvas.height,
+                color,
+                audioAnalysis,
+                audioMappings,
+              );
+              return {
+                fractalId: id,
+                uniforms,
+                waveform: id === "feast" && audioAnalysis ? waveformWindowAt(audioAnalysis, currentTime) : undefined,
+                spectrum: id === "bars" && audioAnalysis ? spectrumWindowAt(audioAnalysis, currentTime) : undefined,
+              };
             };
-          };
-          const layerA = buildLayer(fractalId);
-          const layerB = layerBFractalId && layerBFractalId !== fractalId ? buildLayer(layerBFractalId) : null;
-          renderer.renderComposite(layerA, layerB);
+            const layerA = buildLayer(fractalId);
+            const layerB = layerBFractalId && layerBFractalId !== fractalId ? buildLayer(layerBFractalId) : null;
+            renderer.renderComposite(layerA, layerB);
+          }
         }
       } catch (err) {
         console.error("Render loop error:", err);
@@ -234,7 +256,11 @@ export function FractalViewport() {
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const drag = dragState.current;
-    if (!drag) return;
+    // Each scene in a playing sequence owns its own camera (its preset's) —
+    // dragging here would fight it every frame and silently do nothing
+    // visible, the exact "control has no effect" trap the AnimatedBadge
+    // work elsewhere this project already exists to avoid.
+    if (!drag || useEditorStore.getState().sequenceActive) return;
     const dx = e.clientX - drag.x;
     const dy = e.clientY - drag.y;
     if (Math.abs(dx) > DRAG_THRESHOLD_PX || Math.abs(dy) > DRAG_THRESHOLD_PX) {
@@ -261,6 +287,7 @@ export function FractalViewport() {
 
   const handleWheel = (e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    if (useEditorStore.getState().sequenceActive) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const factor = Math.exp(-e.deltaY * ZOOM_WHEEL_SENSITIVITY);
     cameraRef.current.zoomAt(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height, factor);
@@ -269,6 +296,7 @@ export function FractalViewport() {
   };
 
   const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (useEditorStore.getState().sequenceActive) return;
     const rect = e.currentTarget.getBoundingClientRect();
     cameraRef.current.zoomAt(
       e.clientX - rect.left,
@@ -281,6 +309,26 @@ export function FractalViewport() {
     if (showNavHint) dismissNavHint();
   };
 
+  // Sequence mode replaces the whole frame with the scene chain (see the
+  // render loop above) and disables camera dragging per-scene, both silent
+  // otherwise — this is the one visible sign it's happening, plus the only
+  // way back to normal playback besides re-opening PRESETS.
+  const sequenceActive = useEditorStore((s) => s.sequenceActive);
+  const setSequenceActive = useEditorStore((s) => s.setSequenceActive);
+
+  // Live drawing that disintegrates to the beat (user request 2026-09-05) —
+  // DrawCanvas.tsx owns capture/render, this just wires the toggle + a way
+  // to wipe it. Draw mode intentionally doesn't fight camera pan/zoom: the
+  // overlay canvas only starts intercepting pointer events once it's on
+  // (see FractalViewport.css's .draw-canvas-active rule), so the two never
+  // compete for the same drag gesture.
+  const drawMode = useEditorStore((s) => s.drawMode);
+  const setDrawMode = useEditorStore((s) => s.setDrawMode);
+  const drawColor = useEditorStore((s) => s.drawColor);
+  const setDrawColor = useEditorStore((s) => s.setDrawColor);
+  const drawStrokeCount = useEditorStore((s) => s.drawStrokes.length);
+  const clearDrawStrokes = useEditorStore((s) => s.clearDrawStrokes);
+
   return (
     <div className="fractal-viewport">
       <canvas
@@ -291,9 +339,56 @@ export function FractalViewport() {
         onWheel={handleWheel}
         onDoubleClick={handleDoubleClick}
       />
-      <button className="reset-view-button" onClick={handleResetView} title="Reset camera (R)">
-        RESET VIEW
-      </button>
+      <DrawCanvas />
+      <div className="draw-controls">
+        <button
+          className={drawMode ? "draw-toggle-button draw-toggle-active" : "draw-toggle-button"}
+          onClick={() => setDrawMode(!drawMode)}
+          title="Draw on the viewport — each stroke shatters and fades in time with the kick drum"
+          aria-pressed={drawMode}
+        >
+          ✏ {drawMode ? "Drawing…" : "Draw"}
+        </button>
+        {drawStrokeCount > 0 && (
+          <button className="draw-clear-button" onClick={clearDrawStrokes} title="Remove every drawn stroke">
+            🗑
+          </button>
+        )}
+        {drawMode && (
+          // Only while actually drawing — a color picker has nothing to do
+          // once Draw mode is off, same reasoning as hiding RESET VIEW
+          // during a sequence: a control with no live effect is worse than
+          // no control. Picking a swatch only affects strokes drawn from
+          // here on, not the ones already on screen.
+          <div className="draw-color-swatches" role="group" aria-label="Draw color">
+            {DRAW_COLOR_PRESETS.map((c) => (
+              <button
+                key={c}
+                className={c === drawColor ? "draw-color-swatch draw-color-swatch-active" : "draw-color-swatch"}
+                style={{ background: c }}
+                onClick={() => setDrawColor(c)}
+                title={c}
+                aria-label={`Draw in ${c}`}
+                aria-pressed={c === drawColor}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      {!sequenceActive && (
+        <button className="reset-view-button" onClick={handleResetView} title="Reset camera (R)">
+          RESET VIEW
+        </button>
+      )}
+      {sequenceActive && (
+        <button
+          className="sequence-mode-badge"
+          onClick={() => setSequenceActive(false)}
+          title="Playing a sequence of scenes — each has its own camera. Click to stop and return to the single preset."
+        >
+          ▶ SEQUENCE — click to stop
+        </button>
+      )}
       <div className={showNavHint ? "nav-hint" : "nav-hint nav-hint-hidden"}>scroll to zoom · drag to pan</div>
       {gpuError && (
         <div className="viewport-error">

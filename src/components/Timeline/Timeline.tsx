@@ -71,9 +71,14 @@ function TrackLane({ paramId, duration }: { paramId: string; duration: number })
         {paramDisplayLabel(paramId)}
       </span>
       <div className="timeline-lane" ref={laneRef}>
-        {keyframes.map((k) => (
+        {keyframes.map((k, i) => (
           <button
-            key={k.time}
+            // Not just k.time: the zoom-cycle-and-dive motion (loadAudio.ts's
+            // buildZoomCycleKeyframes) deliberately places two keyframes at
+            // the exact same timestamp to produce a hard cut (Track.ts snaps
+            // a zero-width gap to the later value) — a real, permanent
+            // feature, not bad data, so the render key needs the index too.
+            key={`${k.time}-${i}`}
             type="button"
             className="timeline-kf"
             style={{ left: `${duration > 0 ? (k.time / duration) * 100 : 0}%` }}

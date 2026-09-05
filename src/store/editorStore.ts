@@ -5,6 +5,14 @@ import { FRACTAL_DEFAULT_PARAMS, type FractalRenderParams } from "../engine/frac
 import type { AudioAnalysis } from "../engine/audio/AudioAnalyzer";
 import type { AudioMapping } from "../engine/audio/AudioMapping";
 import type { RenderProgress } from "../export/RenderQueue";
+import { getPreset } from "../presets/registry";
+import {
+  sequenceTotalDuration,
+  DEFAULT_TRANSITION_SECONDS,
+  MIN_STEP_HOLD_SECONDS,
+  type SequenceStep,
+} from "../engine/sequence/Sequence";
+import { STROKE_LIFETIME_SECONDS, DEFAULT_DRAW_COLOR, type DrawStroke } from "../engine/draw/DrawLayer";
 
 // Central editor state. UI reads/writes here; the render engine stays
 // independent of React and is driven from this state by the viewport.
@@ -105,6 +113,44 @@ interface EditorState {
   addAudioMapping: (mapping: AudioMapping) => void;
   updateAudioMapping: (id: string, patch: Partial<Omit<AudioMapping, "id">>) => void;
   removeAudioMapping: (id: string) => void;
+
+  // Scene chaining (HeavyM-inspired sequencer, user request 2026-09-05): an
+  // ordered list of presets, each held for its own duration, crossfading
+  // into the next (engine/sequence/Sequence.ts resolves the actual frames).
+  // Building/editing the list never touches playback; only setSequenceActive
+  // does, so composing a set doesn't interrupt whatever's on screen.
+  sequence: SequenceStep[];
+  sequenceTransitionSeconds: number;
+  sequenceActive: boolean;
+  /** duration/currentTime before entering Sequence mode — setSequenceActive
+   * restores it on exit rather than leaving the timeline permanently
+   * stretched to the sequence's own total length. */
+  preSequenceDuration: number | null;
+  addSequenceStep: (presetId: string) => void;
+  removeSequenceStep: (index: number) => void;
+  moveSequenceStep: (index: number, direction: -1 | 1) => void;
+  setSequenceStepHold: (index: number, holdSeconds: number) => void;
+  setSequenceTransitionSeconds: (seconds: number) => void;
+  /** true starts playback from 0 across the whole sequence; false stops and
+   * hands the timeline back to whatever single preset/track was active. */
+  setSequenceActive: (active: boolean) => void;
+  clearSequence: () => void;
+
+  // Live drawing that disintegrates to the beat (user request 2026-09-05):
+  // an overlay independent of the fractal renderer (engine/draw/DrawLayer.ts,
+  // DrawCanvas.tsx). drawMode only gates *capturing new strokes* — committed
+  // ones keep animating/fading regardless, so toggling it off mid-song
+  // doesn't freeze or erase what's already been drawn.
+  drawMode: boolean;
+  setDrawMode: (on: boolean) => void;
+  /** Applies to strokes drawn from now on — doesn't recolor ones already on
+   * screen, same as changing a slider's default never rewrites past
+   * keyframes. */
+  drawColor: string;
+  setDrawColor: (color: string) => void;
+  drawStrokes: DrawStroke[];
+  addDrawStroke: (stroke: DrawStroke) => void;
+  clearDrawStrokes: () => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
@@ -211,4 +257,64 @@ export const useEditorStore = create<EditorState>((set) => ({
   updateAudioMapping: (id, patch) =>
     set((s) => ({ audioMappings: s.audioMappings.map((m) => (m.id === id ? { ...m, ...patch } : m)) })),
   removeAudioMapping: (id) => set((s) => ({ audioMappings: s.audioMappings.filter((m) => m.id !== id) })),
+
+  sequence: [],
+  sequenceTransitionSeconds: DEFAULT_TRANSITION_SECONDS,
+  sequenceActive: false,
+  preSequenceDuration: null,
+  addSequenceStep: (presetId) =>
+    set((s) => ({
+      sequence: [...s.sequence, { presetId, holdSeconds: getPreset(presetId)?.duration ?? 10 }],
+    })),
+  removeSequenceStep: (index) => set((s) => ({ sequence: s.sequence.filter((_, i) => i !== index) })),
+  moveSequenceStep: (index, direction) =>
+    set((s) => {
+      const target = index + direction;
+      if (target < 0 || target >= s.sequence.length) return {};
+      const next = [...s.sequence];
+      [next[index], next[target]] = [next[target], next[index]];
+      return { sequence: next };
+    }),
+  setSequenceStepHold: (index, holdSeconds) =>
+    set((s) => ({
+      sequence: s.sequence.map((step, i) =>
+        i === index ? { ...step, holdSeconds: Math.max(MIN_STEP_HOLD_SECONDS, holdSeconds) } : step,
+      ),
+    })),
+  setSequenceTransitionSeconds: (seconds) => set({ sequenceTransitionSeconds: Math.max(0, seconds) }),
+  setSequenceActive: (active) =>
+    set((s) => {
+      if (active) {
+        return {
+          sequenceActive: true,
+          preSequenceDuration: s.duration,
+          duration: Math.max(1, sequenceTotalDuration(s.sequence)),
+          currentTime: 0,
+          isPlaying: true,
+        };
+      }
+      return { sequenceActive: false, duration: s.preSequenceDuration ?? s.duration, isPlaying: false };
+    }),
+  clearSequence: () =>
+    set((s) => ({
+      sequence: [],
+      sequenceActive: false,
+      duration: s.sequenceActive ? (s.preSequenceDuration ?? s.duration) : s.duration,
+      isPlaying: s.sequenceActive ? false : s.isPlaying,
+    })),
+
+  drawMode: false,
+  setDrawMode: (on) => set({ drawMode: on }),
+  drawColor: DEFAULT_DRAW_COLOR,
+  setDrawColor: (color) => set({ drawColor: color }),
+  drawStrokes: [],
+  // Drops anything already past its own visible lifetime while adding the
+  // new one — a live-drawing feature run over a long track would otherwise
+  // grow this array forever even though old strokes contribute nothing
+  // (resolveStroke already returns null for them).
+  addDrawStroke: (stroke) =>
+    set((s) => ({
+      drawStrokes: [...s.drawStrokes.filter((st) => s.currentTime - st.bornAt < STROKE_LIFETIME_SECONDS), stroke],
+    })),
+  clearDrawStrokes: () => set({ drawStrokes: [] }),
 }));

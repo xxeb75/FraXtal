@@ -8,6 +8,8 @@
 }
 
 .fractal-viewport canvas {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -19,10 +21,105 @@
   cursor: grabbing;
 }
 
+/* The draw overlay (DrawCanvas.tsx) sits on top of the fractal canvas but
+   ignores pointer events until Draw mode is on — otherwise it would shadow
+   every pan/zoom gesture. Compound selectors here (.fractal-viewport
+   .draw-canvas, not a bare .draw-canvas) deliberately match the base
+   ".fractal-viewport canvas" rule's specificity so cursor/pointer-events
+   reliably win regardless of source order — a bare single-class rule lost
+   this exact fight once before (TopBar.css's randomize-button). */
+.fractal-viewport .draw-canvas {
+  cursor: default;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.fractal-viewport .draw-canvas-active {
+  cursor: crosshair;
+  pointer-events: auto;
+}
+
+.draw-controls {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  max-width: min(260px, calc(100% - 24px));
+  z-index: 2;
+}
+
+.draw-color-swatches {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  /* Forces its own row under the toggle/clear buttons rather than
+     squeezing in beside them — a "petite palette" reads as a picker, not
+     as more decoration crammed onto one already-narrow line. */
+  flex-basis: 100%;
+  background: rgba(17, 17, 20, 0.7);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 7px;
+  backdrop-filter: blur(4px);
+  width: fit-content;
+}
+
+.draw-color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0;
+  cursor: pointer;
+  transition: transform 120ms ease-out, border-color 120ms ease-out;
+}
+
+.draw-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.draw-color-swatch-active {
+  border-color: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.draw-toggle-button,
+.draw-clear-button {
+  background: rgba(17, 17, 20, 0.7);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.draw-toggle-button:hover,
+.draw-clear-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--accent-dim);
+}
+
+.draw-toggle-active {
+  border-color: var(--accent-wild);
+  color: var(--accent-wild);
+}
+
 .reset-view-button {
   position: absolute;
   top: 12px;
   right: 12px;
+  /* Above .draw-canvas (z-index: 1) — otherwise the transparent draw overlay
+     would swallow this button's clicks whenever Draw mode is on, the exact
+     "control silently has no effect" trap this project has hit before. */
+  z-index: 2;
   background: rgba(17, 17, 20, 0.7);
   border: 1px solid var(--border);
   color: var(--text-dim);
@@ -39,6 +136,27 @@
   background: var(--surface-hover);
   color: var(--text);
   border-color: var(--accent-dim);
+}
+
+.sequence-mode-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2; /* same reasoning as .reset-view-button above */
+  background: rgba(17, 17, 20, 0.7);
+  border: 1px solid var(--accent-wild);
+  color: var(--accent-wild);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background-color 150ms ease-out;
+}
+
+.sequence-mode-badge:hover {
+  background: var(--accent-wild-dim);
 }
 
 .nav-hint {

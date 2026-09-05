@@ -1,12 +1,20 @@
 import { writeFile } from "@tauri-apps/plugin-fs";
 import { join } from "@tauri-apps/api/path";
 import { OfflineRenderer, type OfflineFrameRequest } from "./OfflineRenderer";
+import { resolveSequenceFrame, type SequenceStep } from "../engine/sequence/Sequence";
 
 export interface RenderJob extends OfflineFrameRequest {
   duration: number;
   fps: number;
   resolution: [number, number];
   outputDir: string;
+  // When set, every frame comes from resolveSequenceFrame() instead of the
+  // single fractalId/camera/params/keyframesByParam/layerB above — those
+  // stay required by OfflineFrameRequest but are simply unused in that case.
+  // TopBar.tsx always has *some* current single-scene state to pass
+  // regardless of whether Sequence mode is active, so this is a plain
+  // optional add-on rather than a second job shape callers have to branch on.
+  sequence?: { steps: SequenceStep[]; transitionSeconds: number };
 }
 
 export interface RenderProgress {
@@ -66,7 +74,25 @@ export class RenderQueue {
         if (this.cancelled) return { cancelled: true, frameCount: frame };
 
         const time = frame / job.fps;
-        const png = await withTimeout(offline.renderFrame(job, time), FRAME_TIMEOUT_MS, `Frame ${frame}`);
+        let png: Uint8Array;
+        if (job.sequence) {
+          const resolved = resolveSequenceFrame(
+            job.sequence.steps,
+            time,
+            job.sequence.transitionSeconds,
+            job.resolution[0],
+            job.resolution[1],
+            job.audioAnalysis ?? null,
+          );
+          if (!resolved) throw new Error("Sequence has no valid scenes to render.");
+          png = await withTimeout(
+            offline.renderLayers(resolved.layerA, resolved.layerB, resolved.crossfade, time, job.drawStrokes, job.audioAnalysis ?? null),
+            FRAME_TIMEOUT_MS,
+            `Frame ${frame}`,
+          );
+        } else {
+          png = await withTimeout(offline.renderFrame(job, time), FRAME_TIMEOUT_MS, `Frame ${frame}`);
+        }
         const filename = `frame_${String(frame).padStart(5, "0")}.png`;
         await writeFile(await join(job.outputDir, filename), png);
 

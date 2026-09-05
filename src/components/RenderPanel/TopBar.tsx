@@ -8,6 +8,7 @@ import { RenderQueue } from "../../export/RenderQueue";
 import { exportVideo } from "../../export/VideoExporter";
 import { setActiveRenderQueue } from "../../export/activeRenderQueue";
 import { getActiveAudioBytes } from "../../engine/audio/activeAudioBytes";
+import { sequenceTotalDuration } from "../../engine/sequence/Sequence";
 import type { FractalRenderParams } from "../../engine/fractals/defaults";
 import type { ColorSettings } from "../../engine/renderer/FrameRenderer";
 import { useEditorStore } from "../../store/editorStore";
@@ -136,9 +137,15 @@ export function TopBar() {
     if (!outputPath) return;
 
     const s = useEditorStore.getState();
+    // A playing sequence (PresetBrowser's "YOUR SEQUENCE" builder) owns the
+    // frame the same way it does in the live viewport — export renders the
+    // whole chained set, not whatever single preset happens to still be
+    // sitting in selectedFractalId underneath it.
+    const isSequence = s.sequenceActive && s.sequence.length > 0;
+    const duration = isSequence ? sequenceTotalDuration(s.sequence) : s.duration;
     const queue = new RenderQueue();
     setActiveRenderQueue(queue);
-    s.setRenderProgress({ frame: 0, totalFrames: Math.max(1, Math.round(s.duration * s.fps)) });
+    s.setRenderProgress({ frame: 0, totalFrames: Math.max(1, Math.round(duration * s.fps)) });
 
     try {
       const result = await exportVideo(
@@ -148,7 +155,7 @@ export function TopBar() {
           params: s.paramsByFractal[s.selectedFractalId],
           keyframesByParam: s.keyframesByParam,
           color: s.color,
-          duration: s.duration,
+          duration,
           fps: s.fps,
           resolution: s.resolution,
           outputPath,
@@ -159,6 +166,8 @@ export function TopBar() {
             s.layerBFractalId && s.layerBFractalId !== s.selectedFractalId
               ? { fractalId: s.layerBFractalId, params: s.paramsByFractal[s.layerBFractalId] }
               : null,
+          sequence: isSequence ? { steps: s.sequence, transitionSeconds: s.sequenceTransitionSeconds } : undefined,
+          drawStrokes: s.drawStrokes,
         },
         queue,
         (progress) => useEditorStore.getState().setRenderProgress(progress),

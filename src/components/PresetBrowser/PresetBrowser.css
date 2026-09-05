@@ -58,12 +58,10 @@
 }
 
 .preset-card {
-  text-align: left;
+  position: relative;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 5px;
-  padding: 0;
-  cursor: pointer;
   overflow: hidden;
   transition: border-color 150ms ease-out, transform 150ms ease-out;
 }
@@ -71,6 +69,16 @@
 .preset-card:hover {
   border-color: var(--accent-dim);
   transform: translateY(-1px);
+}
+
+.preset-card-apply {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .preset-card-swatch {
@@ -89,4 +97,179 @@
   color: var(--text-dim);
   line-height: 1.4;
   padding: 0 12px 12px;
+}
+
+/* Separate click target from the card's main apply button (a sibling, not
+   nested inside it) — adds this preset as a sequence scene instead of
+   applying it immediately. Quiet by default, only reads as a real control
+   on hover/focus so it doesn't compete with the card's own name/description. */
+.preset-card-add-seq {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(10, 10, 12, 0.75);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  backdrop-filter: blur(2px);
+  transition: border-color 150ms ease-out, color 150ms ease-out;
+}
+
+.preset-card-add-seq:hover,
+.preset-card-add-seq:focus-visible {
+  border-color: var(--accent-wild);
+  color: var(--accent-wild);
+}
+
+.sequence-section {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px 16px;
+}
+
+.sequence-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.sequence-section-head .panel-title {
+  margin-bottom: 0;
+}
+
+.sequence-clear {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 150ms ease-out;
+}
+
+.sequence-clear:hover {
+  color: var(--text);
+}
+
+.sequence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.sequence-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+
+.sequence-row-index {
+  font-size: 10px;
+  color: var(--text-faint);
+  width: 14px;
+  text-align: right;
+}
+
+.sequence-row-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sequence-row-hold {
+  width: 46px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.sequence-row-unit {
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+.sequence-row-move,
+.sequence-row-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 5px;
+  transition: color 150ms ease-out;
+}
+
+.sequence-row-move:hover:not(:disabled),
+.sequence-row-remove:hover {
+  color: var(--text);
+}
+
+.sequence-row-move:disabled {
+  color: var(--text-faint);
+  cursor: default;
+  opacity: 0.4;
+}
+
+.sequence-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sequence-transition {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.sequence-transition input {
+  width: 46px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 11px;
+  padding: 3px 5px;
+  border-radius: 3px;
+}
+
+.sequence-play-button {
+  background: var(--accent-wild);
+  border: 1px solid var(--accent-wild);
+  color: #241200;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 7px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sequence-play-button:hover {
+  filter: brightness(1.08);
+}
+
+.sequence-playing-hint {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
 }

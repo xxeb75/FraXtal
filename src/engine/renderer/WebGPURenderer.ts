@@ -94,6 +94,12 @@ export class WebGPURenderer {
   private compositePipeline: GPURenderPipeline | null = null;
   private compositeBindGroupLayout: GPUBindGroupLayout | null = null;
   private compositeSampler: GPUSampler | null = null;
+  // Chooses the composite shader's blend mode per call (composite.wgsl):
+  // negative = additive (the manual Layer B checkbox), 0..1 = crossfade
+  // weight toward layer B (scene-sequence transitions). One float in its
+  // own uniform buffer, rewritten every renderComposite() call.
+  private compositeBlendBuffer: GPUBuffer | null = null;
+  private compositeBlendData = new Float32Array(4);
 
   /** `canvas` may be an OffscreenCanvas — the offline exporter (Phase 15)
    * renders to one sized at the project's export resolution, entirely
@@ -179,9 +185,15 @@ export class WebGPURenderer {
         { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {} },
         { binding: 1, visibility: GPUShaderStage.FRAGMENT, texture: {} },
         { binding: 2, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
+        { binding: 3, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
       ],
     });
     this.compositeSampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+    this.compositeBlendBuffer = device.createBuffer({
+      label: "composite-blend",
+      size: this.compositeBlendData.byteLength,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
     const compositeModule = device.createShaderModule({ label: "composite-shader", code: compositeSrc });
     this.compositePipeline = device.createRenderPipeline({
       label: "composite-pipeline",
@@ -313,14 +325,17 @@ export class WebGPURenderer {
   }
 
   /**
-   * Renders one or two modes into the same frame — Feast behind Bars,
-   * say — by drawing each into its own offscreen texture with its own
-   * pipeline (unchanged from the single-layer path) and additively
-   * blending the two together onto the canvas (composite.wgsl). With no
-   * second layer this is exactly render() plus one redundant branch, so a
+   * Renders one or two modes into the same frame and composites them
+   * (composite.wgsl) — either stacked additively (the manual Layer B
+   * checkbox, FractalSelector) or dissolved from A to B (scene-sequence
+   * transitions, engine/sequence/Sequence.ts), chosen by `crossfade`: omit
+   * it (or pass null) for additive, or pass a 0..1 weight toward B for a
+   * crossfade. Each layer still draws into its own offscreen texture with
+   * its own pipeline, unchanged from the single-layer path. With no second
+   * layer this is exactly render() plus one redundant branch, so a
    * single-layer frame costs nothing extra.
    */
-  renderComposite(layerA: LayerRequest, layerB: LayerRequest | null): void {
+  renderComposite(layerA: LayerRequest, layerB: LayerRequest | null, crossfade: number | null = null): void {
     const device = this.device;
     const context = this.context;
     if (!device || !context) return;
@@ -336,12 +351,16 @@ export class WebGPURenderer {
     this.renderToTarget(layerA.fractalId, layerA.uniforms, this.layerTextureA!.createView(), layerA.waveform, layerA.spectrum);
     this.renderToTarget(layerB.fractalId, layerB.uniforms, this.layerTextureB!.createView(), layerB.waveform, layerB.spectrum);
 
+    this.compositeBlendData[0] = crossfade ?? -1;
+    device.queue.writeBuffer(this.compositeBlendBuffer!, 0, this.compositeBlendData);
+
     const compositeBindGroup = device.createBindGroup({
       layout: this.compositeBindGroupLayout!,
       entries: [
         { binding: 0, resource: this.layerTextureA!.createView() },
         { binding: 1, resource: this.layerTextureB!.createView() },
         { binding: 2, resource: this.compositeSampler! },
+        { binding: 3, resource: { buffer: this.compositeBlendBuffer! } },
       ],
     });
 
@@ -382,6 +401,8 @@ export class WebGPURenderer {
     this.layerTextureA = null;
     this.layerTextureB?.destroy();
     this.layerTextureB = null;
+    this.compositeBlendBuffer?.destroy();
+    this.compositeBlendBuffer = null;
     this.layerSize = { width: 0, height: 0 };
     this.pipelines.clear();
     this.device = null;
