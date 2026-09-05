@@ -12,18 +12,24 @@ const CUSTOMIZE_STORAGE_KEY = "fraxtal-customize-open";
 
 /** The small "●" toggle next to an animatable control: click records the
  * control's current value as a keyframe at the playhead's current time.
- * Lit (accent) when a keyframe already sits exactly there. */
-function KeyframeDot({ paramId, value }: { paramId: string; value: number }) {
+ * Lit (accent) when a keyframe already sits exactly there. `label` names
+ * which parameter this is in the accessible name — impeccable critique
+ * (2026-09-05, re-run) found every keyframe dot on the page sharing the
+ * identical "Add keyframe at current time" name, indistinguishable to a
+ * screen reader navigating by name alone. */
+function KeyframeDot({ paramId, value, label }: { paramId: string; value: number; label: string }) {
   const currentTime = useEditorStore((s) => s.currentTime);
   const keyframes = useEditorStore((s) => s.keyframesByParam[paramId]);
   const addOrUpdateKeyframe = useEditorStore((s) => s.addOrUpdateKeyframe);
   const hasHere = keyframes?.some((k) => Math.abs(k.time - currentTime) < KEYFRAME_EPSILON) ?? false;
+  const accessibleLabel = hasHere ? `${label}: keyframe at current time` : `Add keyframe for ${label} at current time`;
 
   return (
     <button
       type="button"
       className={hasHere ? "kf-dot active" : "kf-dot"}
-      title={hasHere ? "Keyframe at current time" : "Add keyframe at current time"}
+      title={accessibleLabel}
+      aria-label={accessibleLabel}
       onClick={() => addOrUpdateKeyframe(paramId, currentTime, value, "smooth")}
     >
       ●
@@ -114,12 +120,17 @@ export function ParameterPanel() {
       return false;
     }
   });
-  const openCustomize = () => {
-    setCustomizeOpen(true);
+  // Toggles both ways — impeccable critique (2026-09-05, re-run) caught
+  // that opening this used to be a one-way door: once revealed, there was
+  // no control anywhere to hide the raw sliders again for the rest of the
+  // session.
+  const toggleCustomize = () => {
+    const next = !customizeOpen;
+    setCustomizeOpen(next);
     try {
-      localStorage.setItem(CUSTOMIZE_STORAGE_KEY, "true");
+      localStorage.setItem(CUSTOMIZE_STORAGE_KEY, String(next));
     } catch {
-      // Private/blocked storage — it just re-collapses next launch, harmless.
+      // Private/blocked storage — it just resets to collapsed next launch, harmless.
     }
   };
 
@@ -146,7 +157,7 @@ export function ParameterPanel() {
           ))}
         </div>
         <AnimatedBadge paramId={colorParamKey("paletteId")} />
-        <KeyframeDot paramId={colorParamKey("paletteId")} value={color.paletteId} />
+        <KeyframeDot paramId={colorParamKey("paletteId")} value={color.paletteId} label="Palette" />
       </div>
       <div className="palette-name">{PALETTES.find((p) => p.id === color.paletteId)?.name}</div>
 
@@ -156,7 +167,7 @@ export function ParameterPanel() {
           <span className="camera-label">{CAMERA_FIELD_LABELS[field]}</span>
           <span className="param-value">{camera[field].toFixed(field === "zoom" ? 2 : 4)}</span>
           <AnimatedBadge paramId={cameraParamKey(field)} />
-          <KeyframeDot paramId={cameraParamKey(field)} value={camera[field]} />
+          <KeyframeDot paramId={cameraParamKey(field)} value={camera[field]} label={CAMERA_FIELD_LABELS[field]} />
         </div>
       ))}
       <div className="camera-hint">
@@ -165,11 +176,9 @@ export function ParameterPanel() {
         visibly move it until you clear them.
       </div>
 
-      {!customizeOpen && (
-        <button type="button" className="customize-toggle" onClick={openCustomize}>
-          ⚙ Customize parameters &amp; color
-        </button>
-      )}
+      <button type="button" className="customize-toggle" onClick={toggleCustomize}>
+        {customizeOpen ? "⌃ Hide parameters & color" : "⚙ Customize parameters & color"}
+      </button>
 
       {customizeOpen && (
         <>
@@ -184,7 +193,9 @@ export function ParameterPanel() {
                   <span className="param-row-controls">
                     <span className="param-value">{formatValue(value, p.step)}</span>
                     {p.animatable && <AnimatedBadge paramId={fractalParamKey(selectedId, p.id)} />}
-                    {p.animatable && <KeyframeDot paramId={fractalParamKey(selectedId, p.id)} value={value} />}
+                    {p.animatable && (
+                      <KeyframeDot paramId={fractalParamKey(selectedId, p.id)} value={value} label={p.label} />
+                    )}
                   </span>
                 </div>
                 <input
@@ -209,7 +220,7 @@ export function ParameterPanel() {
                   <span className="param-row-controls">
                     <span className="param-value">{formatValue(value, s.step)}</span>
                     <AnimatedBadge paramId={colorParamKey(s.field)} />
-                    <KeyframeDot paramId={colorParamKey(s.field)} value={value} />
+                    <KeyframeDot paramId={colorParamKey(s.field)} value={value} label={s.label} />
                   </span>
                 </div>
                 <input

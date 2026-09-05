@@ -9,6 +9,7 @@ import { setActiveAudioBytes } from "../../engine/audio/activeAudioBytes";
 import { useEditorStore } from "../../store/editorStore";
 
 const AUDIO_BANDS: AudioBand[] = ["bass", "mid", "treble", "amplitude", "kick"];
+const AUDIO_CUSTOMIZE_STORAGE_KEY = "fraxtal-audio-customize-open";
 
 /** Every quantity a mapping can drive: camera + the current fractal's own
  * animatable numbers + color — the same universe keyframes can already
@@ -98,6 +99,31 @@ export function AudioSection() {
   const [url, setUrl] = useState("");
   const targets = audioTargets(fractalId);
 
+  // Every mapping row is real freedom ("Bass → Zoom, Amount 0.35") but also
+  // real jargon (source/target/amount, all in one line) — impeccable
+  // critique (2026-09-05, re-run) flagged this as the app's most exposed
+  // technical surface, sitting fully open on the very first screen the
+  // moment a track loads, unlike the same fine-tuning controls in
+  // ParameterPanel which already got this treatment. The track name/
+  // duration/remove row stays visible either way — that's just status, not
+  // a control to learn.
+  const [customizeOpen, setCustomizeOpen] = useState(() => {
+    try {
+      return localStorage.getItem(AUDIO_CUSTOMIZE_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+  const toggleCustomize = () => {
+    const next = !customizeOpen;
+    setCustomizeOpen(next);
+    try {
+      localStorage.setItem(AUDIO_CUSTOMIZE_STORAGE_KEY, String(next));
+    } catch {
+      // Private/blocked storage — it just resets to collapsed next launch, harmless.
+    }
+  };
+
   const handleAddMapping = () => {
     addAudioMapping({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -155,13 +181,23 @@ export function AudioSection() {
             </button>
           </div>
 
-          {mappings.map((m) => (
-            <MappingRow key={m.id} mapping={m} targets={targets} />
-          ))}
-
-          <button className="audio-add-mapping" onClick={handleAddMapping}>
-            + Add mapping
+          <button type="button" className="customize-toggle" onClick={toggleCustomize}>
+            {customizeOpen
+              ? "⌃ Hide reactive mappings"
+              : `⚙ Customize reactive mappings (${mappings.length})`}
           </button>
+
+          {customizeOpen && (
+            <>
+              {mappings.map((m) => (
+                <MappingRow key={m.id} mapping={m} targets={targets} />
+              ))}
+
+              <button className="audio-add-mapping" onClick={handleAddMapping}>
+                + Add mapping
+              </button>
+            </>
+          )}
         </>
       )}
     </div>
