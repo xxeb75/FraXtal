@@ -1,0 +1,156 @@
+.timeline {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 14px;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.timeline-scrub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.timeline-time {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  width: 34px;
+}
+
+/* Taller than it looks: the visible 4px bar sits centered inside a 20px
+   hit area, so grabbing the playhead doesn't require pixel-precision. */
+.timeline-track {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.timeline-track::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--surface-hover);
+  border-radius: 2px;
+  transform: translateY(-50%);
+}
+
+/* width stays 100% always — progress is expressed purely via `transform`
+   (scaleX/translateX), so dragging never triggers layout, only compositing. */
+.timeline-fill {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--accent-dim);
+  border-radius: 2px;
+  transform-origin: left center;
+}
+
+/* Anchor point only — JS drives its horizontal position via `transform`
+   every render, so it must never carry a CSS transition (that would lag
+   behind the pointer). The visible dot is a separate inner element so hover
+   feedback (transitioned) never fights the position (not transitioned). */
+.timeline-playhead {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+.timeline-playhead-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  background: var(--accent);
+  border-radius: 50%;
+  transition: transform 100ms ease-out;
+}
+
+.timeline-track:hover .timeline-playhead-dot,
+.timeline-track:active .timeline-playhead-dot {
+  transform: scale(1.25);
+}
+
+.duration-input {
+  width: 48px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text);
+  font-size: 11px;
+  padding: 3px 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.duration-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.timeline-lanes {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  isolation: isolate;
+}
+
+.timeline-lane-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 16px;
+}
+
+.timeline-lane-label {
+  width: 110px;
+  flex: none;
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-lane {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  background: var(--surface-hover);
+  border-radius: 2px;
+}
+
+.timeline-kf {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--text-dim);
+  border: 1px solid var(--bg);
+  border-radius: 2px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  cursor: grab;
+  padding: 0;
+  transition: background-color 150ms ease-out;
+}
+
+.timeline-kf:hover,
+.timeline-kf:active {
+  background: var(--accent);
+  cursor: grabbing;
+}

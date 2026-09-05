@@ -1,0 +1,151 @@
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+
+.top-bar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.top-bar-actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  /* --text-dim, not --text-faint: this base color is what most of these
+     buttons actually render at (a bare `.presets-button { color: ... }`
+     rule below can't out-specify `.top-bar-actions button`, a class+type
+     selector — the per-button color rules were silently losing to this one
+     the whole time, rendering PRESETS/OPEN/SAVE/EXPORT at --text-faint's
+     3.0:1 contrast instead of --text-dim's ~7:1). Buttons with a genuinely
+     different color (RANDOMIZE, ✕) raise their own selector's specificity
+     instead of relying on losing gracefully. */
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 5px 12px;
+  border-radius: 3px;
+}
+
+.top-bar-actions button[disabled] {
+  cursor: not-allowed;
+}
+
+/* The one button with real personality — this is the "instrument" move
+   (a generative morph across the whole timeline), so it earns a filled,
+   heavier treatment instead of the neutral outline every other action
+   shares, and its own accent hue (--accent-wild) instead of the teal used
+   for ordinary selection/recognition states elsewhere. Still flat color,
+   no gradient/glow, per the craft rules — the loudness comes from hue and
+   weight, not decoration. */
+/* `button.randomize-button` (not just `.randomize-button`): matches
+   `.top-bar-actions button`'s class+type specificity instead of losing to
+   it, so this button's own background/color actually render. */
+button.randomize-button {
+  background: var(--accent-wild);
+  border-color: var(--accent-wild);
+  color: #1a0320;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: transform 150ms ease-out, filter 150ms ease-out;
+}
+
+.randomize-button:hover {
+  filter: brightness(1.1);
+}
+
+.randomize-button:active {
+  transform: scale(0.96);
+}
+
+.undo-button {
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.undo-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.presets-button {
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+/* One-time first-launch cue (TopBar.tsx) — transform only, no glow/blur,
+   so it reads as "look here" rather than decoration. */
+@keyframes spotlight-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.spotlight {
+  animation: spotlight-pulse 1.6s ease-in-out 3;
+}
+
+.presets-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.file-button {
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.file-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.top-bar-status {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.minimize-button {
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 10px;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.minimize-button:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.close-button {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 10px;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.close-button:hover {
+  background: #4a1518;
+  border-color: #7a2530;
+  color: #ff6b6b;
+}

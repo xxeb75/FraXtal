@@ -1,0 +1,92 @@
+.preset-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  isolation: isolate;
+}
+
+.preset-panel {
+  width: min(720px, 90vw);
+  max-height: 80vh;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preset-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.preset-panel-head .panel-title {
+  margin-bottom: 0;
+}
+
+.preset-close {
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 150ms ease-out;
+}
+
+.preset-close:hover {
+  color: var(--text);
+}
+
+.preset-grid {
+  display: grid;
+  /* auto-fit (not auto-fill): when the last row has fewer cards than a full
+     row, its existing columns stretch to fill the width instead of leaving
+     empty tracks that push the cards to one side. */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.preset-card {
+  text-align: left;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 150ms ease-out, transform 150ms ease-out;
+}
+
+.preset-card:hover {
+  border-color: var(--accent-dim);
+  transform: translateY(-1px);
+}
+
+.preset-card-swatch {
+  height: 40px;
+}
+
+.preset-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 10px 12px 2px;
+}
+
+.preset-card-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  padding: 0 12px 12px;
+}

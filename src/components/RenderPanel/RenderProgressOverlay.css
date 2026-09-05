@@ -1,0 +1,93 @@
+.render-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  isolation: isolate;
+}
+
+.render-panel {
+  width: min(360px, 90vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+}
+
+.render-title {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+
+.render-frame-count {
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 12px;
+}
+
+.render-bar-track {
+  height: 6px;
+  background: var(--surface-hover);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.render-bar-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.render-bar-fill-indeterminate {
+  width: 40%;
+  animation: render-bar-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes render-bar-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.render-pct {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.render-pct-note {
+  font-variant-numeric: normal;
+  line-height: 1.4;
+}
+
+.render-cancel {
+  margin-top: 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, color 150ms ease-out;
+}
+
+.render-cancel:hover {
+  border-color: #7a2530;
+  color: #ff6b6b;
+}

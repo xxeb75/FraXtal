@@ -1,0 +1,36 @@
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 100%;
+  padding: 0 14px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.play-button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.status-item {
+  font-variant-numeric: tabular-nums;
+}
+
+.timecode {
+  color: var(--text);
+}
