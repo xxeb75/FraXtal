@@ -2,9 +2,9 @@
 name = "app"
 version = "0.1.0"
 description = "A Tauri App"
-authors = ["you"]
-license = ""
-repository = ""
+authors = ["FraXtal contributors"]
+license = "MIT"
+repository = "https://github.com/xxeb75/FraXtal"
 edition = "2021"
 rust-version = "1.77.2"
 

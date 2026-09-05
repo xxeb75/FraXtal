@@ -1,32 +1,37 @@
-# React + TypeScript + Vite
+# FraXtal
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A desktop app (Windows/macOS, built with Tauri + React + WebGPU) that turns fractals into hypnotic, audio-reactive generative video — for VJs, visual artists, and anyone who wants a music video made out of math.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Fractal engine, rendered live on the GPU** — Mandelbrot, Julia, Burning Ship, Newton, plus three generative/audio-native modes: Feast (plasma + oscilloscope), Vortex (neon tunnel), and Bars (a real-time spectrum equalizer).
+- **Audio-reactive by design** — load a local track or a YouTube link, and map any frequency band (bass/mid/treble/volume/kick) onto any parameter (zoom, rotation, color, the fractal's own shape) with an adjustable amount. Kick-drum onset detection drives sharp, percussive hits distinct from a smooth bass sway.
+- **Keyframe animation** — camera, color, and every fractal parameter can be keyframed and scrubbed on a timeline, with a curated set of presets to start from.
+- **Scene sequencing** — chain several presets into a set with crossfade transitions between them, like a VJ building a show out of scenes.
+- **Live drawing** — draw or type text directly on the viewport; it shatters and fades in time with the kick drum, live and in the exported video.
+- **Two-layer compositing** — stack two fractal modes together (e.g. Bars over Vortex) for a richer look.
+- **Video export** — renders the full timeline frame-by-frame and muxes it with the loaded audio into an MP4, independent of the live preview's frame rate or window size.
 
-## React Compiler
+## Requirements
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Windows 10/11 or macOS, with a GPU that supports WebGPU.
+- Node.js and Rust (stable toolchain) to build from source.
 
-## Expanding the Oxlint configuration
+## Development
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev        # web preview only (no native window)
+npx tauri dev       # full desktop app with hot reload
+npx tauri build      # release installer (.msi / NSIS .exe on Windows)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Run the test suite with:
+
+```bash
+npm test
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

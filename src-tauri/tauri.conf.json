@@ -28,6 +28,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "FraXtal",
+    "copyright": "Copyright © 2026 FraXtal",
     "externalBin": [
       "binaries/ffmpeg",
       "binaries/yt-dlp"
