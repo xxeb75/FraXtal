@@ -12,7 +12,7 @@ import {
   MIN_STEP_HOLD_SECONDS,
   type SequenceStep,
 } from "../engine/sequence/Sequence";
-import { STROKE_LIFETIME_SECONDS, DEFAULT_DRAW_COLOR, type DrawStroke } from "../engine/draw/DrawLayer";
+import { STROKE_LIFETIME_SECONDS, DEFAULT_DRAW_COLOR, type DrawItem } from "../engine/draw/DrawLayer";
 
 // Central editor state. UI reads/writes here; the render engine stays
 // independent of React and is driven from this state by the viewport.
@@ -143,13 +143,20 @@ interface EditorState {
   // doesn't freeze or erase what's already been drawn.
   drawMode: boolean;
   setDrawMode: (on: boolean) => void;
-  /** Applies to strokes drawn from now on — doesn't recolor ones already on
+  /** Which gesture Draw mode captures — freehand strokes, or a tap to place
+   * a line of text (2026-09-05 follow-up: "same behavior, text disintegrates
+   * too"). Only meaningful while drawMode is on. */
+  drawTool: "stroke" | "text";
+  setDrawTool: (tool: "stroke" | "text") => void;
+  /** Applies to items drawn from now on — doesn't recolor ones already on
    * screen, same as changing a slider's default never rewrites past
    * keyframes. */
   drawColor: string;
   setDrawColor: (color: string) => void;
-  drawStrokes: DrawStroke[];
-  addDrawStroke: (stroke: DrawStroke) => void;
+  /** Holds both strokes and text items (DrawItem) — the name predates text
+   * but "drawn items" is what it means throughout. */
+  drawStrokes: DrawItem[];
+  addDrawStroke: (item: DrawItem) => void;
   clearDrawStrokes: () => void;
 }
 
@@ -305,16 +312,18 @@ export const useEditorStore = create<EditorState>((set) => ({
 
   drawMode: false,
   setDrawMode: (on) => set({ drawMode: on }),
+  drawTool: "stroke",
+  setDrawTool: (tool) => set({ drawTool: tool }),
   drawColor: DEFAULT_DRAW_COLOR,
   setDrawColor: (color) => set({ drawColor: color }),
   drawStrokes: [],
   // Drops anything already past its own visible lifetime while adding the
   // new one — a live-drawing feature run over a long track would otherwise
-  // grow this array forever even though old strokes contribute nothing
-  // (resolveStroke already returns null for them).
-  addDrawStroke: (stroke) =>
+  // grow this array forever even though old items contribute nothing
+  // (resolveDrawItem already returns null for them).
+  addDrawStroke: (item) =>
     set((s) => ({
-      drawStrokes: [...s.drawStrokes.filter((st) => s.currentTime - st.bornAt < STROKE_LIFETIME_SECONDS), stroke],
+      drawStrokes: [...s.drawStrokes.filter((it) => s.currentTime - it.bornAt < STROKE_LIFETIME_SECONDS), item],
     })),
   clearDrawStrokes: () => set({ drawStrokes: [] }),
 }));

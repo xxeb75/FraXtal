@@ -324,10 +324,25 @@ export function FractalViewport() {
   // compete for the same drag gesture.
   const drawMode = useEditorStore((s) => s.drawMode);
   const setDrawMode = useEditorStore((s) => s.setDrawMode);
+  const drawTool = useEditorStore((s) => s.drawTool);
+  const setDrawTool = useEditorStore((s) => s.setDrawTool);
   const drawColor = useEditorStore((s) => s.drawColor);
   const setDrawColor = useEditorStore((s) => s.setDrawColor);
   const drawStrokeCount = useEditorStore((s) => s.drawStrokes.length);
   const clearDrawStrokes = useEditorStore((s) => s.clearDrawStrokes);
+
+  // Draw/Text act as one mutually-exclusive pair: clicking the tool that's
+  // already active turns drawing off entirely; clicking the other one turns
+  // drawing on (if it wasn't) and switches to it — so there's always exactly
+  // zero or one active tool, never two, without a separate on/off control.
+  const selectDrawTool = (tool: "stroke" | "text") => {
+    if (drawMode && drawTool === tool) {
+      setDrawMode(false);
+    } else {
+      setDrawMode(true);
+      setDrawTool(tool);
+    }
+  };
 
   return (
     <div className="fractal-viewport">
@@ -342,15 +357,23 @@ export function FractalViewport() {
       <DrawCanvas />
       <div className="draw-controls">
         <button
-          className={drawMode ? "draw-toggle-button draw-toggle-active" : "draw-toggle-button"}
-          onClick={() => setDrawMode(!drawMode)}
+          className={drawMode && drawTool === "stroke" ? "draw-toggle-button draw-toggle-active" : "draw-toggle-button"}
+          onClick={() => selectDrawTool("stroke")}
           title="Draw on the viewport — each stroke shatters and fades in time with the kick drum"
-          aria-pressed={drawMode}
+          aria-pressed={drawMode && drawTool === "stroke"}
         >
-          ✏ {drawMode ? "Drawing…" : "Draw"}
+          ✏ {drawMode && drawTool === "stroke" ? "Drawing…" : "Draw"}
+        </button>
+        <button
+          className={drawMode && drawTool === "text" ? "draw-toggle-button draw-toggle-active" : "draw-toggle-button"}
+          onClick={() => selectDrawTool("text")}
+          title="Type text on the viewport — it shatters and fades the same way a drawn stroke does"
+          aria-pressed={drawMode && drawTool === "text"}
+        >
+          🔤 Text
         </button>
         {drawStrokeCount > 0 && (
-          <button className="draw-clear-button" onClick={clearDrawStrokes} title="Remove every drawn stroke">
+          <button className="draw-clear-button" onClick={clearDrawStrokes} title="Remove everything drawn or typed">
             🗑
           </button>
         )}

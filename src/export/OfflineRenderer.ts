@@ -7,7 +7,7 @@ import type { FractalRenderParams } from "../engine/fractals/defaults";
 import type { AudioAnalysis } from "../engine/audio/AudioAnalyzer";
 import { waveformWindowAt, spectrumWindowAt } from "../engine/audio/AudioAnalyzer";
 import type { AudioMapping } from "../engine/audio/AudioMapping";
-import { renderDrawLayer, type DrawStroke } from "../engine/draw/DrawLayer";
+import { renderDrawLayer, type DrawItem } from "../engine/draw/DrawLayer";
 
 export interface OfflineFrameRequest {
   fractalId: string;
@@ -25,7 +25,7 @@ export interface OfflineFrameRequest {
   /** Live-drawn strokes (DrawCanvas.tsx) composited on top of the fractal
    * frame — independent of fractalId/layerB, applies the same way whatever
    * mode is rendering underneath. */
-  drawStrokes?: DrawStroke[];
+  drawStrokes?: DrawItem[];
 }
 
 /**
@@ -89,7 +89,7 @@ export class OfflineRenderer {
     layerB: LayerRequest | null,
     crossfade: number | null,
     time: number,
-    drawStrokes?: DrawStroke[],
+    drawStrokes?: DrawItem[],
     audioAnalysis: AudioAnalysis | null = null,
   ): Promise<Uint8Array> {
     this.renderer.renderComposite(layerA, layerB, crossfade);
@@ -104,7 +104,7 @@ export class OfflineRenderer {
    * identical code to the live overlay (DrawCanvas.tsx) drawing onto its
    * own transparent canvas. Skipped entirely (straight PNG from the WebGPU
    * canvas) when there's nothing drawn, which is the common case. */
-  private async capture(time: number, drawStrokes: DrawStroke[] | undefined, audioAnalysis: AudioAnalysis | null): Promise<Uint8Array> {
+  private async capture(time: number, drawStrokes: DrawItem[] | undefined, audioAnalysis: AudioAnalysis | null): Promise<Uint8Array> {
     await this.renderer.waitForGPU();
 
     if (!drawStrokes || drawStrokes.length === 0) {
