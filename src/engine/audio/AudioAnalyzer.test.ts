@@ -9,6 +9,7 @@ function fakeAnalysis(): AudioAnalysis {
     mid: new Array(11).fill(0.3),
     treble: new Array(11).fill(0.1),
     amplitude: new Array(11).fill(0.6),
+    kick: new Array(11).fill(0),
     waveform: new Float32Array(0),
     waveformSamplesPerFrame: 0,
     spectrum: new Float32Array(0),

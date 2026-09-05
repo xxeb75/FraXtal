@@ -28,7 +28,16 @@ export function applyPreset(preset: Preset): void {
     s.setDuration(preset.duration);
   }
   const targetDuration = hasAudio ? s.duration : preset.duration;
-  s.setCurrentTime(0);
+  // Only rewind when there's no track playing underneath — with one loaded,
+  // AudioPlayback.tsx's drift correction snaps the actual `<audio>` element
+  // back to match currentTime, so forcing it to 0 here restarted the song
+  // every time a preset was applied mid-playback. Without audio there's
+  // nothing to keep in sync, so starting the new composition from 0 is the
+  // more predictable choice (matches clicking a preset expecting to see it
+  // play from its beginning).
+  if (!hasAudio) {
+    s.setCurrentTime(0);
+  }
   s.requestCameraChange(preset.camera);
 
   for (const [id, value] of Object.entries(preset.params)) {

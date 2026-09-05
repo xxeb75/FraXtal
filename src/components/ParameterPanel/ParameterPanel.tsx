@@ -31,6 +31,38 @@ function KeyframeDot({ paramId, value }: { paramId: string; value: number }) {
   );
 }
 
+/** True whenever this param has ANY keyframe, anywhere on the timeline —
+ * not just at the current instant (KeyframeDot's "active" state). A param
+ * with even one keyframe never reads its manual value again
+ * (evaluateAnimatedFrame prefers the curve at every time, Track.ts), so the
+ * slider silently does nothing the moment this is true — confusing enough
+ * on its own that it needs its own visible state, not just a lit dot. */
+function useIsAnimated(paramId: string): boolean {
+  return useEditorStore((s) => (s.keyframesByParam[paramId]?.length ?? 0) > 0);
+}
+
+/** Shown next to a slider whose param is currently keyframe-driven — names
+ * what's happening (the slider is real, it's just not the active source
+ * right now) and offers the one-click way out: drop every keyframe on this
+ * one param, handing control back to the slider immediately. Loading a
+ * track auto-seeds keyframes on several params (loadAudio.ts's "infinite
+ * fall") — this is the most common reason a slider will look broken. */
+function AnimatedBadge({ paramId }: { paramId: string }) {
+  const isAnimated = useIsAnimated(paramId);
+  const setKeyframesForParam = useEditorStore((s) => s.setKeyframesForParam);
+  if (!isAnimated) return null;
+  return (
+    <button
+      type="button"
+      className="animated-badge"
+      title="This parameter is driven by keyframes — the slider has no effect until they're cleared. Click to clear them."
+      onClick={() => setKeyframesForParam(paramId, [])}
+    >
+      animated ✕
+    </button>
+  );
+}
+
 interface ColorSliderDef {
   field: keyof ColorSettings;
   label: string;
@@ -113,6 +145,7 @@ export function ParameterPanel() {
             />
           ))}
         </div>
+        <AnimatedBadge paramId={colorParamKey("paletteId")} />
         <KeyframeDot paramId={colorParamKey("paletteId")} value={color.paletteId} />
       </div>
       <div className="palette-name">{PALETTES.find((p) => p.id === color.paletteId)?.name}</div>
@@ -122,10 +155,15 @@ export function ParameterPanel() {
         <div className="camera-row" key={field}>
           <span className="camera-label">{CAMERA_FIELD_LABELS[field]}</span>
           <span className="param-value">{camera[field].toFixed(field === "zoom" ? 2 : 4)}</span>
+          <AnimatedBadge paramId={cameraParamKey(field)} />
           <KeyframeDot paramId={cameraParamKey(field)} value={camera[field]} />
         </div>
       ))}
-      <div className="camera-hint">Drag/scroll the viewport to move the camera — the dot records it here.</div>
+      <div className="camera-hint">
+        Drag/scroll the viewport to move the camera — the dot records it here. A field marked "animated" is
+        currently driven by keyframes instead (loading a track often adds these automatically) — dragging won't
+        visibly move it until you clear them.
+      </div>
 
       {!customizeOpen && (
         <button type="button" className="customize-toggle" onClick={openCustomize}>
@@ -145,6 +183,7 @@ export function ParameterPanel() {
                   <span>{p.label}</span>
                   <span className="param-row-controls">
                     <span className="param-value">{formatValue(value, p.step)}</span>
+                    {p.animatable && <AnimatedBadge paramId={fractalParamKey(selectedId, p.id)} />}
                     {p.animatable && <KeyframeDot paramId={fractalParamKey(selectedId, p.id)} value={value} />}
                   </span>
                 </div>
@@ -169,6 +208,7 @@ export function ParameterPanel() {
                   <span>{s.label}</span>
                   <span className="param-row-controls">
                     <span className="param-value">{formatValue(value, s.step)}</span>
+                    <AnimatedBadge paramId={colorParamKey(s.field)} />
                     <KeyframeDot paramId={colorParamKey(s.field)} value={value} />
                   </span>
                 </div>

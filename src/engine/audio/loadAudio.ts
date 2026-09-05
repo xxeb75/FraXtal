@@ -196,6 +196,16 @@ export function defaultMappings(fractalId: string): AudioMapping[] {
     // crushing blacks/blowing highlights for an instant reads as a flash,
     // the same trick strobing VJ visuals use to sell impact on the beat.
     mk("bass", colorParamKey("contrast"), 0.7),
+    // Kick (AudioAnalyzer.ts's onsetPulse) is a sharp, self-resetting hit,
+    // not a level like bass — it's what actually makes a kick drum read as
+    // a *hit* instead of just adding to the low end's smooth sway. Stacked
+    // on top of the bass mappings above (audioOffsetFor sums every mapping
+    // on a target), not replacing them, so the groove stays and the drums
+    // punch through it.
+    mk("kick", cameraParamKey("zoom"), 14),
+    mk("kick", colorParamKey("brightness"), 1.2),
+    mk("kick", colorParamKey("contrast"), 1.0),
+    mk("kick", colorParamKey("paletteId"), 2),
   ];
 
   if (fractalId === "julia") {
@@ -215,6 +225,10 @@ export function defaultMappings(fractalId: string): AudioMapping[] {
     mappings.push(mk("mid", fractalParamKey(fractalId, "cImag"), 2.2));
     mappings.push(mk("amplitude", fractalParamKey(fractalId, "cImag"), 1.4));
     mappings.push(mk("treble", fractalParamKey(fractalId, "power"), 3.5));
+    // Kick punches the escape power on top of everything else — a drum hit
+    // snaps the whole silhouette for an instant, on top of the smoother
+    // treble/bass drift already reshaping it.
+    mappings.push(mk("kick", fractalParamKey(fractalId, "power"), 2.5));
   } else if (fractalId === "mandelbrot" || fractalId === "burning-ship") {
     // Same idea as Julia's stacked C: three bands feeding the one
     // structural knob these fractals have (no free C constant, only the
@@ -223,6 +237,7 @@ export function defaultMappings(fractalId: string): AudioMapping[] {
     mappings.push(mk("bass", fractalParamKey(fractalId, "power"), 7));
     mappings.push(mk("mid", fractalParamKey(fractalId, "power"), 3));
     mappings.push(mk("treble", fractalParamKey(fractalId, "power"), 2));
+    mappings.push(mk("kick", fractalParamKey(fractalId, "power"), 4)); // drum-hit punch on top of the groove
   } else if (fractalId === "feast") {
     // Feast's "Iterations/Bailout/Power" sliders are relabeled Layers/
     // Frequency/Distortion (registry.ts) — driving them from the music is
@@ -232,6 +247,7 @@ export function defaultMappings(fractalId: string): AudioMapping[] {
     mappings.push(mk("bass", fractalParamKey(fractalId, "bailout"), 8)); // wave frequency
     mappings.push(mk("treble", fractalParamKey(fractalId, "power"), 4)); // warp + scope trace height
     mappings.push(mk("amplitude", fractalParamKey(fractalId, "iterations"), 400)); // layer count
+    mappings.push(mk("kick", fractalParamKey(fractalId, "power"), 3)); // extra warp punch on hits
   } else if (fractalId === "vortex") {
     // Vortex's own sliders are relabeled Segments/Speed/Twist (registry.ts) —
     // bass kicking the tunnel's rush speed and treble snapping the mirror
@@ -240,6 +256,7 @@ export function defaultMappings(fractalId: string): AudioMapping[] {
     mappings.push(mk("bass", fractalParamKey(fractalId, "bailout"), 10)); // rush speed
     mappings.push(mk("treble", fractalParamKey(fractalId, "iterations"), 500)); // mirror segment count
     mappings.push(mk("mid", fractalParamKey(fractalId, "power"), 3)); // spiral twist
+    mappings.push(mk("kick", fractalParamKey(fractalId, "bailout"), 8)); // extra speed burst on hits
   } else if (fractalId === "bars") {
     // Bars' own sliders are relabeled Bars/Reflection/Curve (registry.ts).
     // Each column's height already comes straight from the real spectrum
@@ -249,6 +266,7 @@ export function defaultMappings(fractalId: string): AudioMapping[] {
     mappings.push(mk("amplitude", fractalParamKey(fractalId, "bailout"), 25)); // reflection strength
     mappings.push(mk("bass", fractalParamKey(fractalId, "power"), 3)); // edge curve
     mappings.push(mk("treble", fractalParamKey(fractalId, "iterations"), 300)); // bar count
+    mappings.push(mk("kick", fractalParamKey(fractalId, "power"), 3)); // curve snap on hits
   }
 
   return mappings;

@@ -15,6 +15,7 @@ export const AUDIO_BAND_LABELS: Record<AudioBand, string> = {
   mid: "Mid",
   treble: "Treble",
   amplitude: "Volume",
+  kick: "Kick",
 };
 
 /**

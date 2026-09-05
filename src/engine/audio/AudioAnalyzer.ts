@@ -15,6 +15,12 @@ export interface AudioAnalysis {
   mid: number[];
   treble: number[];
   amplitude: number[];
+  /** Sharp, short-lived pulses on sudden jumps in low-end energy — a kick
+   * drum's signature — as distinct from `bass`'s smooth level-following,
+   * which also responds to a held bass note the same way it responds to a
+   * kick. Punchy fast-attack/fast-release envelope over a same-vs-previous-
+   * frame onset, not a level. */
+  kick: number[];
   /** Flat array of `frameCount * waveformSamplesPerFrame` values in [-1, 1] —
    * a decimated snapshot of the actual time-domain waveform at each analysis
    * frame (Feast's oscilloscope, AudioAnalyzer.ts's own header rationale:
@@ -28,7 +34,7 @@ export interface AudioAnalysis {
   spectrumBinsPerFrame: number;
 }
 
-export type AudioBand = "bass" | "mid" | "treble" | "amplitude";
+export type AudioBand = "bass" | "mid" | "treble" | "amplitude" | "kick";
 
 const BASS_HZ: [number, number] = [20, 250];
 const MID_HZ: [number, number] = [250, 2000];
@@ -82,6 +88,17 @@ function envelopeSmooth(values: number[], attack: number, release: number): numb
 
 function shapeForVisuals(values: number[]): number[] {
   return envelopeSmooth(normalizeToPeak(values), 0.85, 0.42);
+}
+
+/** A hit, not a level: rectified frame-to-frame increase in the raw signal
+ * (so a sustained bass note that isn't getting louder produces ~nothing,
+ * while a kick's sudden onset produces a spike), normalized to its own
+ * peak, then a near-instant attack with a quick release so each hit reads
+ * as one sharp, self-resetting flash instead of blending into a smooth
+ * level like `bass` does. This is what makes drum hits feel like *hits*. */
+function onsetPulse(raw: number[]): number[] {
+  const diffs = raw.map((v, i) => Math.max(0, v - (raw[i - 1] ?? v)));
+  return envelopeSmooth(normalizeToPeak(diffs), 0.97, 0.55);
 }
 
 /** Picks `count` evenly-spaced samples out of the raw 0..255 time-domain
@@ -191,6 +208,7 @@ export async function analyzeAudioFile(bytes: Uint8Array, frameRate = 30): Promi
     mid: shapeForVisuals(mid),
     treble: shapeForVisuals(treble),
     amplitude: shapeForVisuals(amplitude),
+    kick: onsetPulse(bass),
     waveform,
     waveformSamplesPerFrame: WAVEFORM_SAMPLES_PER_FRAME,
     spectrum,

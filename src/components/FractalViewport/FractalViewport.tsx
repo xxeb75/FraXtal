@@ -4,6 +4,7 @@ import { FRACTAL_DEFAULT_CAMERA } from "../../engine/fractals/defaults";
 import { evaluateAnimatedFrame } from "../../engine/renderer/FrameRenderer";
 import { waveformWindowAt, spectrumWindowAt } from "../../engine/audio/AudioAnalyzer";
 import { WebGPURenderer } from "../../engine/renderer/WebGPURenderer";
+import { buildProjectFromStore } from "../../project/Project";
 import { useEditorStore } from "../../store/editorStore";
 import "./FractalViewport.css";
 
@@ -171,9 +172,14 @@ export function FractalViewport() {
   // just as much as a camera snapping back would have. Clearing every
   // keyframe (same operation PRESETS already does before applying its own)
   // makes Reset View an unconditional "stop and show me the whole thing"
-  // rather than a partial one.
+  // rather than a partial one. That's still destructive though — impeccable
+  // critique (2026-09-05, re-run) caught that unlike Randomize and Preset
+  // apply, this wasn't snapshotting first, so a single keypress could wipe
+  // an entire hand-built animation with no way back. Same one-step safety
+  // net as those two now.
   const handleResetView = () => {
     const s = useEditorStore.getState();
+    s.setUndoSnapshot(buildProjectFromStore());
     const fractalId = s.selectedFractalId;
     cameraRef.current.reset(FRACTAL_DEFAULT_CAMERA[fractalId] ?? FRACTAL_DEFAULT_CAMERA.mandelbrot);
     syncCameraToStore();

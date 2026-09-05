@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { paramDisplayLabel } from "../../engine/animation/paramKeys";
+import { buildProjectFromStore } from "../../project/Project";
 import { useEditorStore } from "../../store/editorStore";
 import "./Timeline.css";
 
@@ -99,8 +100,21 @@ export function Timeline() {
   const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
   const setDuration = useEditorStore((s) => s.setDuration);
   const keyframesByParam = useEditorStore((s) => s.keyframesByParam);
+  const clearAllKeyframes = useEditorStore((s) => s.clearAllKeyframes);
+  const setUndoSnapshot = useEditorStore((s) => s.setUndoSnapshot);
 
   const animatedParamIds = Object.keys(keyframesByParam).filter((id) => keyframesByParam[id].length > 0);
+
+  // One click to wipe every lane at once — the per-param "animated ✕" badge
+  // (ParameterPanel.tsx) clears one parameter; this is its whole-timeline
+  // counterpart, e.g. after RANDOMIZE or a loaded track's auto-seeded
+  // "infinite fall" (loadAudio.ts) leave more motion than you want to keep.
+  // Same one-step Ctrl+Z safety net as Randomize/Preset/Reset View — this is
+  // just as destructive as those, so it gets the same undo snapshot first.
+  const handleClearKeyframes = () => {
+    setUndoSnapshot(buildProjectFromStore());
+    clearAllKeyframes();
+  };
   const progress = duration > 0 ? currentTime / duration : 0;
 
   // Playback: advances currentTime by real elapsed time while isPlaying,
@@ -236,11 +250,24 @@ export function Timeline() {
       </div>
 
       {animatedParamIds.length > 0 && (
-        <div className="timeline-lanes">
-          {animatedParamIds.map((id) => (
-            <TrackLane key={id} paramId={id} duration={duration} />
-          ))}
-        </div>
+        <>
+          <div className="timeline-lanes-head">
+            <span className="timeline-lanes-count">{animatedParamIds.length} animated parameter{animatedParamIds.length > 1 ? "s" : ""}</span>
+            <button
+              type="button"
+              className="clear-keyframes-button"
+              onClick={handleClearKeyframes}
+              title="Remove every keyframe on every parameter (Ctrl+Z to undo)"
+            >
+              🗑 Clear Keyframes
+            </button>
+          </div>
+          <div className="timeline-lanes">
+            {animatedParamIds.map((id) => (
+              <TrackLane key={id} paramId={id} duration={duration} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -12,9 +12,9 @@
      the closest thing this tool has to its own identity (TopBar.tsx) — so
      that one region of the chrome carries the "party instrument" feeling
      the rendered fractals already have, instead of the whole UI staying a
-     single flat teal. Near-complementary to --accent by design. */
-  --accent-wild: #d946ef;
-  --accent-wild-dim: rgba(217, 70, 239, 0.16);
+     single flat teal. */
+  --accent-wild: #f97316;
+  --accent-wild-dim: rgba(249, 115, 22, 0.16);
 
   color-scheme: dark;
   font-family: -apple-system, "Segoe UI", Inter, system-ui, sans-serif;

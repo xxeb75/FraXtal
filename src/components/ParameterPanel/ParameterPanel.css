@@ -44,6 +44,28 @@
   gap: 6px;
 }
 
+/* Names why a slider isn't moving anything right now (it's keyframed, not
+   broken) and doubles as the one-click way out — clicking clears just this
+   param's keyframes. --accent-wild, not the ordinary teal: this is a state
+   the user needs to notice, not a passive label. */
+.animated-badge {
+  flex: none;
+  background: transparent;
+  border: 1px solid var(--accent-wild);
+  color: var(--accent-wild);
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
+}
+
+.animated-badge:hover {
+  background: var(--accent-wild);
+  color: #241200;
+}
+
 .param-value {
   color: var(--text);
   font-variant-numeric: tabular-nums;

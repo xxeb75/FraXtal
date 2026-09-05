@@ -8,7 +8,7 @@ import { loadLocalAudioFile, loadAudioFromUrl } from "../../engine/audio/loadAud
 import { setActiveAudioBytes } from "../../engine/audio/activeAudioBytes";
 import { useEditorStore } from "../../store/editorStore";
 
-const AUDIO_BANDS: AudioBand[] = ["bass", "mid", "treble", "amplitude"];
+const AUDIO_BANDS: AudioBand[] = ["bass", "mid", "treble", "amplitude", "kick"];
 
 /** Every quantity a mapping can drive: camera + the current fractal's own
  * animatable numbers + color — the same universe keyframes can already

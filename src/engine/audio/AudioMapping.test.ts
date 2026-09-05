@@ -9,6 +9,7 @@ const analysis: AudioAnalysis = {
   mid: [0, 0],
   treble: [0, 0],
   amplitude: [0, 0],
+  kick: [0, 0],
   waveform: new Float32Array(0),
   waveformSamplesPerFrame: 0,
   spectrum: new Float32Array(0),

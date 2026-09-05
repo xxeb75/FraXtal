@@ -155,6 +155,10 @@ export function TopBar() {
           audioAnalysis: s.audioAnalysis,
           audioMappings: s.audioMappings,
           audioBytes: getActiveAudioBytes(),
+          layerB:
+            s.layerBFractalId && s.layerBFractalId !== s.selectedFractalId
+              ? { fractalId: s.layerBFractalId, params: s.paramsByFractal[s.layerBFractalId] }
+              : null,
         },
         queue,
         (progress) => useEditorStore.getState().setRenderProgress(progress),
